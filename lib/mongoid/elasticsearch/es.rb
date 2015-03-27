@@ -32,13 +32,18 @@ module Mongoid
           last_id = docs.last.try(:id)
           docs = docs.map do |obj|
             if obj.es_index?
-              { index: {data: obj.as_indexed_json}.merge(_id: obj.id.to_s) }
+              {
+                index: {
+                  data: obj.as_indexed_json,
+                  _id:  obj.id.to_s
+                }.merge(options_for(obj))
+              }
             else
               nil
             end
           end.reject { |obj| obj.nil? }
           next if docs.empty?
-          client.bulk({body: docs}.merge(type_options))
+          client.bulk({body: docs}.merge(index: index.name, type: docs[0][:index][:type]))
           if block_given?
             yield steps, step
           end
@@ -58,7 +63,7 @@ module Mongoid
 
         options[:wrapper] ||= klass.es_wrapper
 
-        Response.new(client, query.merge(custom_type_options(options)), false, klass, options)
+        Response.new(client, query.merge(custom_type_options(options)), true, klass, options)
       end
 
       def all(options = {})
@@ -66,7 +71,15 @@ module Mongoid
       end
 
       def options_for(obj)
-        {id: obj.id.to_s}.merge type_options
+        {id: obj.id.to_s}.merge(type_options(obj)).merge(parent_options(obj))
+      end
+
+      def parent_options(obj)
+        if parent_id = obj.es_parent_id
+          {parent: parent_id.to_s}
+        else
+          {}
+        end
       end
 
       def custom_type_options(options)
@@ -77,8 +90,8 @@ module Mongoid
         end
       end
 
-      def type_options
-        {index: index.name, type: index.type}
+      def type_options(obj = nil)
+        {index: index.name, type: obj ? obj.es_type : index.type}
       end
 
       def index_item(obj)

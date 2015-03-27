@@ -187,6 +187,52 @@ describe Article do
   end
 end
 
+describe SubArticle do
+  it 'is in the same index as articles' do
+    expect(SubArticle.es_index_name).to eq Article.es_index_name
+  end
+  context 'searching' do
+    before :each do
+      @bob  = Article.create! name: "bob"
+      @jeff = Article.create! name: "jeff"
+      3.times do
+        SubArticle.create! name: "kid", parent_id: @bob.id
+      end
+      7.times do
+        SubArticle.create! name: "kid", parent_id: @jeff.id
+      end
+      Article.es.index.refresh
+    end
+    it "can find using has_parent" do
+      search = SubArticle.es.search({
+        body: {
+          query: { match_all: {}},
+          filter: {
+            has_parent: {
+              type: "article",
+              query: { match: {name: "bob"}}
+            }
+          }
+        }
+      }, include_type: false)
+
+      expect(search.to_a.length).to eq(3)
+    end
+  end
+  context '#index_all' do
+    before :each do
+      @bob  = Article.create! name: "bob"
+      10.times do
+        SubArticle.create! name: "test", parent_id: @bob.id
+      end
+    end
+    it "works" do
+      SubArticle.es.index_all
+      expect(SubArticle.all.to_a.length).to eq(10)
+    end
+  end
+end
+
 
 describe Post do
   it 'properly uses options' do

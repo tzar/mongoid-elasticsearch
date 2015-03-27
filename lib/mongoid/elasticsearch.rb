@@ -62,13 +62,15 @@ module Mongoid
           attr_accessor :_type, :_score, :_source
         end
 
-        cattr_accessor :es_client_options, :es_index_name, :es_index_options, :es_wrapper, :es_skip_create
+        cattr_accessor :es_client_options, :es_index_name, :es_index_options, :es_wrapper, :es_skip_create, :es_children, :es_type
 
         self.es_client_options = Mongoid::Elasticsearch.client_options.dup.merge(options[:client_options])
         self.es_index_name     = (options[:prefix_name] ? Mongoid::Elasticsearch.prefix : '') + (options[:index_name] || model_name.plural)
         self.es_index_options  = options[:index_options]
         self.es_wrapper        = options[:wrapper]
         self.es_skip_create    = options[:skip_create]
+        self.es_children       = []
+        self.es_type           = es.index.type
 
         Mongoid::Elasticsearch.registered_indexes.push self.es_index_name
         Mongoid::Elasticsearch.registered_indexes.uniq!
@@ -87,6 +89,46 @@ module Mongoid
         end
 
         include Indexing
+        include Callbacks if options[:callbacks]
+      end
+
+      def self.elasticsearch_child!(options = {})
+        raise "Need to be mapped :to a parent class!" unless options[:to] && options[:to].es
+
+        options = {
+          mapping:   {},
+          parent:    :parent_id,
+          callbacks: true
+        }.merge(options)
+
+        @__es__ = options[:to].es
+        options[:to].es_children << self
+
+        meta = class << self; self; end
+        [:es_client_options, :es_index_name, :es_index_options, :es_wrapper, :es_skip_create].each do |attr|
+          meta.send :define_method, attr do
+            options[:to].send(attr)
+          end
+          define_method attr do
+            options[:to].send(attr)
+          end
+        end
+        cattr_accessor :child_es, :es_mapping, :es_type
+        self.child_es   = Mongoid::Elasticsearch::Es.new(self)
+        self.es_mapping = options[:mapping]
+        self.es_type    = self.child_es.index.type
+
+        es_mapping["_parent"]                = { "type" => es.index.type }
+        es_index_options[:mappings][es_type] = es_mapping
+
+        include Indexing
+
+        define_method :es_parent_id do
+          send(options[:parent]).tap do |parent_id|
+            raise "Parent/Child relationship needs a parent!" unless parent_id
+          end.to_s
+        end
+
         include Callbacks if options[:callbacks]
       end
     end

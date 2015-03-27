@@ -11,6 +11,10 @@ module Mongoid
           true
         end
 
+        def es_parent_id
+          # Stub
+        end
+
         def es_update
           if destroyed? || !es_index?
             self.class.es.remove_item(self)

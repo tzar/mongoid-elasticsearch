@@ -8,7 +8,7 @@ module Mongoid
       include Enumerable
       include Pagination
 
-      attr_reader :time, :total, :options, :facets, :max
+      attr_reader :time, :total, :options, :facets, :max, :query
       attr_reader :response
 
       def initialize(client, query, multi, model, options)
