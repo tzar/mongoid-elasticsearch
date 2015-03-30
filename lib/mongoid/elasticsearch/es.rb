@@ -30,24 +30,28 @@ module Mongoid
             docs = q.limit(step_size).to_a
           end
           last_id = docs.last.try(:id)
-          docs = docs.map do |obj|
-            if obj.es_index?
-              {
-                index: {
-                  data: obj.as_indexed_json,
-                  _id:  obj.id.to_s
-                }.merge(options_for(obj))
-              }
-            else
-              nil
-            end
-          end.reject { |obj| obj.nil? }
-          next if docs.empty?
-          client.bulk({body: docs}.merge(index: index.name, type: docs[0][:index][:type]))
+
+          bulk_index(docs)
           if block_given?
-            yield steps, step
+            yield steps, step, docs
           end
         end       
+      end
+      def bulk_index(docs)
+        docs = docs.map do |obj|
+          if obj.es_index?
+            {
+              index: {
+                data: obj.as_indexed_json,
+                _id:  obj.id.to_s
+              }.merge(options_for(obj))
+            }
+          else
+            nil
+          end
+        end.reject { |obj| obj.nil? }
+        return if docs.empty?
+        client.bulk({body: docs}.merge(index: index.name, type: docs[0][:index][:type]))
       end
 
       def search(query, options = {})
