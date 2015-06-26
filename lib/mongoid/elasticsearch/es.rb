@@ -42,16 +42,15 @@ module Mongoid
           if obj.es_index?
             {
               index: {
-                data: obj.as_indexed_json,
-                _id:  obj.id.to_s
-              }.merge(options_for(obj))
+                data: obj.as_indexed_json
+              }.merge(bulk_options_for(obj))
             }
           else
             nil
           end
-        end.reject { |obj| obj.nil? }
+        end.compact
         return if docs.empty?
-        client.bulk({body: docs}.merge(index: index.name, type: docs[0][:index][:type]))
+        client.bulk({body: docs})
       end
 
       def search(query, options = {})
@@ -74,6 +73,14 @@ module Mongoid
         search({body: {query: {match_all: {}}}}, options)
       end
 
+      def bulk_options_for(obj)
+        options = type_options(obj)
+        {
+          _id:    obj.id.to_s,
+          _type:  options[:type],
+          _index: options[:index]
+        }.merge(parent_options(obj))
+      end
       def options_for(obj)
         {id: obj.id.to_s}.merge(type_options(obj)).merge(parent_options(obj))
       end
