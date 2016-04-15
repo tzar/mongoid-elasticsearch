@@ -6,10 +6,10 @@ module Mongoid
       included do
         after_save :update_es_index
         after_destroy :update_es_index
+      end
         
-        def update_es_index
-          es_update
-        end
+      def update_es_index
+        es_update
       end
 
       module ClassMethods
