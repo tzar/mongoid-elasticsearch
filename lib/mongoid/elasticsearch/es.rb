@@ -87,7 +87,7 @@ module Mongoid
 
       def parent_options(obj)
         if parent_id = obj.es_parent_id
-          {parent: parent_id.to_s}
+          {parent: parent_id.to_s}.merge(obj.es_routing_options)
         else
           {}
         end

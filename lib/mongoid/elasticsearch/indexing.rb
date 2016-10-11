@@ -10,6 +10,9 @@ module Mongoid
         true
       end
 
+      def es_routing_options
+        {}
+      end
       def es_parent_id
         # Stub
       end

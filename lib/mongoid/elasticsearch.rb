@@ -118,7 +118,7 @@ module Mongoid
         self.es_mapping = options[:mapping]
         self.es_type    = self.child_es.index.type
 
-        es_mapping["_parent"]                = { "type" => es.index.type }
+        es_mapping["_parent"]                = { "type" => options[:parent_type] || es.index.type }
         es_index_options[:mappings][es_type] = es_mapping
 
         include Indexing
