@@ -100,15 +100,11 @@ describe Article do
     end
 
 
-    if Article.es.completion_supported?
-      it 'completion' do
-        expect(Article.es.completion('te', 'name.suggest')).to eq [
-          {"text"=>"test article name likes", "score"=>1.0},
-          {"text"=>"tests likely an another article title", "score"=>1.0}
-        ]
-      end
-    else
-      pending "completion suggester not supported in ES version #{Article.es.version}"
+    it 'completion' do
+      expect(Article.es.completion('te', 'name.suggest')).to eq [
+        {"text"=>"test article name likes", "score"=>1.0},
+        {"text"=>"tests likely an another article title", "score"=>1.0}
+      ]
     end
 
   end

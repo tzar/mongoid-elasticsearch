@@ -2,11 +2,10 @@ module Mongoid
   module Elasticsearch
     class Es
       INDEX_STEP = 100
-      attr_reader :klass, :version
+      attr_reader :klass
 
       def initialize(klass)
         @klass = klass
-        @version = Gem::Version.new(client.info['version']['number'])
       end
 
       def client
@@ -113,12 +112,7 @@ module Mongoid
         client.delete(options_for(obj).merge(ignore: 404))
       end
 
-      def completion_supported?
-        @version > Gem::Version.new('0.90.2')
-      end
-
       def completion(text, field = "suggest")
-        raise "Completion not supported in ES #{@version}" unless completion_supported?
         body = {
           q: {
             text: Utils.clean(text),

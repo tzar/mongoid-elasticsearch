@@ -16,10 +16,6 @@ class Article
     raw:      {type: 'string', index: :not_analyzed}
   }
 
-  if Gem::Version.new(::Elasticsearch::Client.new.info['version']['number']) > Gem::Version.new('0.90.2')
-    i_fields[:suggest] = {type: 'completion'} 
-  end
-
   elasticsearch! index_name: 'mongoid_es_news', prefix_name: false, index_mappings: {
     name: {
       type: 'multi_field',
